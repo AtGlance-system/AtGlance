@@ -1,0 +1,67 @@
+# Opt-in: NFS Storage (premium, licence key nfs_storage). Mounts up to 4 NFS exports in the
+# console containers, one Docker NFS volume per mount slot: slot <n> at /app/nfs/<n>. The Docker
+# daemon mounts them, so the console containers stay unprivileged.
+#
+#   1. In the install directory's .env, one block per export (slot 1 to 4):
+#        NFS_1_SERVER=nfs1.example.internal
+#        NFS_1_EXPORT=/exports/backups
+#        NFS_1_OPTIONS=nfsvers=4.1,rw,hard,timeo=50,retrans=2   (optional; this is the default)
+#        NFS_2_SERVER=nfs2.example.internal
+#        NFS_2_EXPORT=/exports/configs
+#      A slot without NFS_<n>_SERVER is an empty local volume: the console treats it as not
+#      mounted and never writes to it.
+#   2. docker compose -f docker-compose.yml -f docker-compose.nfs.yml up -d -y
+#      (add -f docker-compose.domain.yml too if you use the built-in proxy). -y lets Docker
+#      recreate a slot's volume when its server changes; files on the NFS server are not touched.
+#   3. Register each export in Site Settings > NFS Storage with the same mount slot, then choose
+#      what is stored where.
+# Undo: docker compose up -d (the exports are not touched). See docs/NFS_STORAGE.md.
+x-nfs-volumes: &nfs-volumes
+  volumes:
+    - app-storage:/app/storage
+    - nfs-1:/app/nfs/1
+    - nfs-2:/app/nfs/2
+    - nfs-3:/app/nfs/3
+    - nfs-4:/app/nfs/4
+
+services:
+  app:
+    <<: *nfs-volumes
+  worker:
+    <<: *nfs-volumes
+  scheduler:
+    <<: *nfs-volumes
+
+  # NFS Storage: the controller mounts the registered exports that are in use into the app, worker
+  # and scheduler containers (composer/bin/controller.php), only while the licence includes NFS
+  # Storage and the plugin is on. Mounting needs these rights; the console containers stay
+  # unprivileged. Without this file the controller never mounts anything.
+  controller:
+    privileged: true
+    pid: host
+
+volumes:
+  nfs-1:
+    driver: local
+    driver_opts:
+      type: "${NFS_1_SERVER:+nfs}"
+      o: "${NFS_1_SERVER:+addr=${NFS_1_SERVER},${NFS_1_OPTIONS:-nfsvers=4.1,rw,hard,timeo=50,retrans=2}}"
+      device: "${NFS_1_SERVER:+:${NFS_1_EXPORT:-/}}"
+  nfs-2:
+    driver: local
+    driver_opts:
+      type: "${NFS_2_SERVER:+nfs}"
+      o: "${NFS_2_SERVER:+addr=${NFS_2_SERVER},${NFS_2_OPTIONS:-nfsvers=4.1,rw,hard,timeo=50,retrans=2}}"
+      device: "${NFS_2_SERVER:+:${NFS_2_EXPORT:-/}}"
+  nfs-3:
+    driver: local
+    driver_opts:
+      type: "${NFS_3_SERVER:+nfs}"
+      o: "${NFS_3_SERVER:+addr=${NFS_3_SERVER},${NFS_3_OPTIONS:-nfsvers=4.1,rw,hard,timeo=50,retrans=2}}"
+      device: "${NFS_3_SERVER:+:${NFS_3_EXPORT:-/}}"
+  nfs-4:
+    driver: local
+    driver_opts:
+      type: "${NFS_4_SERVER:+nfs}"
+      o: "${NFS_4_SERVER:+addr=${NFS_4_SERVER},${NFS_4_OPTIONS:-nfsvers=4.1,rw,hard,timeo=50,retrans=2}}"
+      device: "${NFS_4_SERVER:+:${NFS_4_EXPORT:-/}}"

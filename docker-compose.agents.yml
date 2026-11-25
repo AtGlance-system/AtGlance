@@ -1,0 +1,151 @@
+# Agent Monitoring (premium, agent_monitoring): its own web service (the Servers pages, their poll
+# endpoints and the agents API), the agent gateway for atglance 3.0 agents, the message consumer
+# and TimescaleDB for the time series (metrics, check results, heartbeat history). The console's
+# Caddy sends the monitoring paths to agent-monitoring; while it is down they answer "Monitoring
+# service unavailable" and the rest of the console keeps working.
+# docs/design/AGENT_MONITORING_SERVICE.md. Rollback to the console serving them itself:
+# ATGLANCE_AGENT_MONITORING_EMBEDDED=true (and ATGLANCE_AGENT_MONITORING_UPSTREAM=127.0.0.1:8000).
+#   docker compose -f docker-compose.yml -f docker-compose.agents.yml up -d
+# Set in .env next to this file:
+#   ATGLANCE_AGENT_GATEWAY_SECRET   openssl rand -hex 32 (the same value for app and gateway)
+#   TSDB_PASSWORD                   openssl rand -hex 24
+# Agents connect to wss://<console>/agent/v1/connect through the app's Caddy (port 8000, or
+# 80/443 with docker-compose.domain.yml). See docs/console-agents.md and docs/aacp-v1.md.
+x-agent-env: &agent-env
+  ATGLANCE_AGENT_GATEWAY_SECRET: ${ATGLANCE_AGENT_GATEWAY_SECRET:?set ATGLANCE_AGENT_GATEWAY_SECRET in .env}
+  ATGLANCE_AGENT_GATEWAY_URL: http://agent-gateway:8091
+  ATGLANCE_AGENT_PUBLIC_URL: ${ATGLANCE_AGENT_PUBLIC_URL:-}
+  TSDB_HOST: tsdb
+  TSDB_PORT: 5432
+  TSDB_DATABASE: atglance_metrics
+  TSDB_USERNAME: atglance
+  TSDB_PASSWORD: ${TSDB_PASSWORD:?set TSDB_PASSWORD in .env}
+
+x-agent-monitoring-env: &agent-monitoring-env
+  # The console's Caddy routes the monitoring paths here; the console checks /up for its top bar.
+  ATGLANCE_AGENT_MONITORING_UPSTREAM: ${ATGLANCE_AGENT_MONITORING_UPSTREAM:-agent-monitoring:8000}
+  ATGLANCE_AGENT_MONITORING_URL: ${ATGLANCE_AGENT_MONITORING_URL:-http://agent-monitoring:8000}
+  ATGLANCE_AGENT_MONITORING_EMBEDDED: ${ATGLANCE_AGENT_MONITORING_EMBEDDED:-false}
+
+services:
+  app:
+    environment:
+      <<: [*agent-env, *agent-monitoring-env]
+  worker:
+    environment:
+      <<: [*agent-env, *agent-monitoring-env]
+  # agents:health and agents:retention stay in the console scheduler.
+  scheduler:
+    environment:
+      <<: [*agent-env, *agent-monitoring-env]
+  # Starts and stops the Agent Monitoring containers for the Plugins switch, and runs
+  # `php artisan agents:plugin on|off|status` (docker exec ce-atglance-controller ...).
+  controller:
+    environment:
+      <<: [*agent-env, *agent-monitoring-env]
+
+  # The Agent Monitoring web service: same image, role agent-monitoring. It serves only the
+  # monitoring routes (the console's Caddy sends nothing else here) and shares the console's
+  # .env (APP_KEY) and database sessions, so users stay signed in. No published port.
+  agent-monitoring:
+    image: ${ATGLANCE_REGISTRY:-atglance}/ce-atglance-app:${ATGLANCE_VERSION:-3.0.0}
+    container_name: ce-atglance-agent-monitoring
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - app-storage:/app/storage
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 23306
+      DB_DATABASE: atglance
+      DB_USERNAME: atglance
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 26379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      ATGLANCE_ROLE: agent-monitoring
+      ATGLANCE_PROXY: "off"
+      LOG_CHANNEL: stderr
+      <<: [*agent-env, *agent-monitoring-env]
+    # The image's health check: curl http://127.0.0.1:8000/up.
+    depends_on:
+      app:
+        condition: service_healthy
+      tsdb:
+        condition: service_healthy
+
+  # Reads the gateway's inbound stream (aacp:in) and writes agent state and time series.
+  agent-worker:
+    image: ${ATGLANCE_REGISTRY:-atglance}/ce-atglance-app:${ATGLANCE_VERSION:-3.0.0}
+    container_name: ce-atglance-agent-worker
+    restart: unless-stopped
+    command: php artisan agents:consume
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - app-storage:/app/storage
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 23306
+      DB_DATABASE: atglance
+      DB_USERNAME: atglance
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 26379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      ATGLANCE_ROLE: agent-worker
+      <<: *agent-env
+    healthcheck:
+      disable: true
+    depends_on:
+      app:
+        condition: service_healthy
+      tsdb:
+        condition: service_healthy
+
+  agent-gateway:
+    image: ${ATGLANCE_REGISTRY:-atglance}/ce-atglance-agent-gateway:${ATGLANCE_VERSION:-3.0.0}
+    container_name: ce-atglance-agent-gateway
+    restart: unless-stopped
+    environment:
+      ATGLANCE_AGENT_GATEWAY_SECRET: ${ATGLANCE_AGENT_GATEWAY_SECRET}
+      # Session open/close and hello go to the monitoring service (HMAC-signed, internal network).
+      ATGLANCE_APP_URL: ${ATGLANCE_AGENT_MONITORING_URL:-http://agent-monitoring:8000}
+      REDIS_ADDR: redis:26379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      GATEWAY_INSTANCE_ID: ce-atglance-agent-gateway
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      agent-monitoring:
+        condition: service_healthy
+
+  # TimescaleDB (PostgreSQL 16): raw metrics (7 days), 5-minute rollups (90 days), check results
+  # and heartbeat history. Only inside the Docker network; never published to the host.
+  tsdb:
+    image: timescale/timescaledb:2.17.2-pg16
+    container_name: ce-atglance-tsdb
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: atglance_metrics
+      POSTGRES_USER: atglance
+      POSTGRES_PASSWORD: ${TSDB_PASSWORD}
+      TIMESCALEDB_TELEMETRY: "off"
+    volumes:
+      - tsdb-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atglance -d atglance_metrics"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  tsdb-data:

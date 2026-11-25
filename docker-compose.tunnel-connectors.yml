@@ -1,0 +1,9 @@
+# Remote Tunnel: publish the tunnel service's connector port (mutual TLS, WebSocket) for Agent
+# Tunnel connectors. Only needed when connectors are used; Direct and bastion/proxy-only installs
+# publish nothing extra. Use with docker-compose.tunnel.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.tunnel.yml -f docker-compose.tunnel-connectors.yml up -d
+# Behind a published gateway or load balancer, point it at this port (docs/PUBLISHED_GATEWAY.md).
+services:
+  tunnel:
+    ports:
+      - "${TUNNEL_PORT:-8443}:8443"
