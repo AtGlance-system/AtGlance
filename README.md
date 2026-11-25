@@ -14,13 +14,13 @@ containers come from the overlay files below.
 **Linux (Docker host), new install or upgrade:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<owner>/<this-repo>/main/scripts/atglance-installer.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/AtGlance-system/AtGlance/main/scripts/atglance-installer.sh | sudo bash
 ```
 
 **Windows (PowerShell, as Administrator):**
 
 ```powershell
-irm https://raw.githubusercontent.com/<owner>/<this-repo>/main/scripts/atglance-installer.ps1 | iex
+irm https://raw.githubusercontent.com/AtGlance-system/AtGlance/main/scripts/atglance-installer.ps1 | iex
 ```
 
 The installer checks the host (CPU, memory, Docker, Docker Compose), then runs the updater:
@@ -34,7 +34,7 @@ Then open `http://<server>:8000`, run the setup wizard and add the licence (Sett
 **Upgrade later** on a running console:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<owner>/<this-repo>/main/scripts/atglance_update.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/AtGlance-system/AtGlance/main/scripts/atglance_update.sh | sudo bash
 ```
 
 Full guide, including manual Compose installs, Windows, container services (ECS) and rollback:
