@@ -161,4 +161,4 @@ cloud, sign-in method, tier, last test result and warnings. No secret is returne
 | `does not match its stored MD5 checksum` | The blob was changed or damaged in Azure. Use another copy |
 | A copy is "kept: cannot be deleted yet" | Immutability policy or legal hold on the container; expected |
 
-Local testing with the Azurite emulator: dev/azure/README.md.
+Local testing with the Azurite emulator: `dev/azure/README.md` in the console source.

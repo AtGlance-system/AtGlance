@@ -2,7 +2,7 @@
 # AtGlance Community Edition updater: deploys the newest release ("latest"). Updates an existing
 # install, or deploys a new console when there is none.
 #
-#   curl -fsSL https://raw.githubusercontent.com/niketchandra/atGlance-managementGUI/main/scripts/atglance_update.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/AtGlance-system/atGlance/main/scripts/atglance_update.sh | sudo bash
 #   sudo bash atglance_update.sh [options]
 #
 # No .env file is needed, and this script names no service, image or setting of a release:
@@ -33,7 +33,7 @@ set -euo pipefail
 
 ATGLANCE_DIR="${ATGLANCE_DIR:-}"
 ATGLANCE_REF="${ATGLANCE_REF:-main}"
-REPO_RAW="https://raw.githubusercontent.com/niketchandra/atGlance-managementGUI/${ATGLANCE_REF}"
+REPO_RAW="https://raw.githubusercontent.com/AtGlance-system/atGlance/${ATGLANCE_REF}"
 # Local compose file instead of downloading one (testing a branch).
 ATGLANCE_COMPOSE_FILE="${ATGLANCE_COMPOSE_FILE:-}"
 FORCE=0
@@ -45,10 +45,7 @@ MIN_DISK_GB=5
 HEALTH_TIMEOUT_S=300
 SCRATCH_DB=atglance_update_verify
 # Compose files published in the repository: the main file, then the opt-in overlays.
-# PARKED(remote-tunnel-simplify): docker-compose.ipsec.yml and docker-compose.router.yml are no longer
-# fetched or started (PARKED_COMPOSE); an install that used them keeps running without them.
-COMPOSE_NAMES="docker-compose.yml docker-compose.domain.yml docker-compose.nfs.yml docker-compose.tunnel.yml docker-compose.tunnel-connectors.yml docker-compose.agents.yml"
-PARKED_COMPOSE="docker-compose.ipsec.yml docker-compose.router.yml"
+COMPOSE_NAMES="docker-compose.yml docker-compose.domain.yml docker-compose.nfs.yml"
 # Image tag variable of the AtGlance images (rollback re-tags them).
 VERSION_VAR=ATGLANCE_VERSION
 SECRET_RE='(PASSWORD|SECRET|TOKEN|_KEY)$'
@@ -227,7 +224,7 @@ remove_clone() {
     top=$("${g[@]}" rev-parse --show-toplevel 2>/dev/null) || return 0
     top=$(cd "$top" && pwd -P)
     case "$("${g[@]}" remote get-url origin 2>/dev/null)" in
-        *niketchandra/atGlance-managementGUI*) ;;
+        *AtGlance-system/atGlance*|*niketchandra/atGlance-managementGUI*) ;;
         *) return 0 ;;
     esac
     local install
@@ -308,16 +305,8 @@ if [ -n "$any" ]; then
     for p in "${used_files[@]}"; do
         b=$(basename "$p")
         [ "$b" = docker-compose.yml ] && continue
-        case " $PARKED_COMPOSE " in *" $b "*)
-            warn "Compose file $b: parked (IPsec, Point-to-Site, subnet router). Not started any more; its container is removed. Use Direct with your organization's network, or a bastion/connector (docs/PARKED_FEATURES.md)."
-            continue ;;
-        esac
         [ -f "$NEW_DIR/$b" ] || { [ -f "$b" ] && cp "$b" "$NEW_DIR/$b"; } || continue
         FILES+=("$b"); ok "Compose file $b in use: kept"
-        # The tunnel overlay used to publish the connector port: keep it published for this install.
-        if [ "$b" = docker-compose.tunnel.yml ] && [ -f "$NEW_DIR/docker-compose.tunnel-connectors.yml" ] && [[ ",$used," != *"docker-compose.tunnel-connectors.yml"* ]]; then
-            FILES+=(docker-compose.tunnel-connectors.yml); ok "Compose file docker-compose.tunnel-connectors.yml added (keeps the connector port published)"
-        fi
     done
 fi
 NEW_ARGS=(--project-directory "$ATGLANCE_DIR"); DIR_ARGS=()
