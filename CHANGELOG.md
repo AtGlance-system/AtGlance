@@ -1,46 +1,5 @@
 # Changelog
 
-## Unreleased
-
-### Removed: Add servers from the console
-
-- **Add server** (Remote Deploy, premium key `remote_deploy`) is removed: the Add server button and dialog,
-  Update CLI / Redeploy / Restart agent / Enable agent over a saved login, the deployment accounts page, the
-  `add_servers` workspace permission, the `deploy.failed` event and the `atglance-deployer` helper in the image.
-- Registered servers stay, including the ones added with Add server: they keep syncing with their
-  deployment service account key, which admins now manage in the Service Accounts list.
-- Add a server on the server itself: `sudo atglance login`, then `sudo atglance system register`
-  (and `sudo atglance agent install` for live monitoring).
-- The licence key `remote_deploy` is retired (`contracts/FEATURES.md`); licences that list it are not affected.
-- The tables `deploy_targets` and `deploy_runs` are left in place on existing installs (no schema change).
-
-### Agent Monitoring: retention, old servers, updates
-
-- **Data retention** in Settings > Agents (super admin): seven settings for raw metrics, 5-minute averages, heartbeats, check results, outages and alerts, events and sessions, and request output. Each shows its size and oldest record. **Clean up now** runs the cleanup at once.
-- The daily `agents:retention` (03:40) now also cleans the MySQL history. Servers, the latest tables, open outages and open alerts are never deleted.
-- **Remove old servers** on the Servers page (super admin): remove one offline server, or all servers offline for more than N days. Connected servers are never removed. Registered systems and configuration backups are kept.
-- **Update agents** from the Servers page: **Update** and **Update all outdated** for connected agents 3.0.0 or newer, one update at a time per server. The release list is read from `ATGLANCE_CLI_RELEASES_URL` (`config/cli_releases.php`).
-- **Servers** is in the top bar; Servers, Service heartbeat and Requests are no longer in the sidebar. See [docs/AGENT_MONITORING.md](docs/AGENT_MONITORING.md).
-
-### Google Drive backups (free)
-
-- New **Google Drive** plugin: keep copies of the Database and Configuration & console files backups in your own Google Drive, and restore from them. Free, part of Backup & Restore. See [docs/GOOGLE_DRIVE.md](docs/GOOGLE_DRIVE.md).
-- You use your own Google OAuth client:
-  - **Web application** clients connect through the console's callback (HTTPS or localhost).
-  - **Desktop app** clients work on headless consoles: open the Google link on any device and paste the address back.
-- The console asks for the `drive.file` scope only, so it sees only the files it created. Backups go to `My Drive/AtGlance-Backups/<folder>/`.
-- Google Drive is a storage target like S3, NFS and Azure. Schedules, copies to keep, encryption, manifests, checksum checks, pre-restore snapshots and rollback all work the same way.
-- The client secret and the refresh token are stored encrypted with `APP_KEY`.
-- `gdrive:health` runs daily and sends two new organization notifications:
-  - `gdrive.reconnect_needed` when Google no longer accepts the access;
-  - `gdrive.quota_low` when the Drive is almost full.
-
-### Other changes
-
-- Muted text is darker across the console and readable (`--ag-muted` #646b75).
-- Status badges use darker text colors.
-- The dashboard's Vulnerabilities tile no longer shows zero counts in red.
-
 ## 2.3.0 (unreleased)
 
 ### Security advisory: PHP2Shell (CVE-2026-109618, CVE-2026-109619)
@@ -76,13 +35,13 @@ Every AtGlance console image up to and including 2.2.0 ran on the floating `php:
    - On Linux, as root:
 
      ```bash
-     curl -fsSL https://raw.githubusercontent.com/niketchandra/atGlance-managementGUI/main/scripts/atglance_update.sh | sudo bash -s -- --yes
+     curl -fsSL https://raw.githubusercontent.com/AtGlance-system/atGlance/main/scripts/atglance_update.sh | sudo bash -s -- --yes
      ```
 
    - On Windows, in an administrator PowerShell:
 
      ```powershell
-     irm https://raw.githubusercontent.com/niketchandra/atGlance-managementGUI/main/scripts/atglance_update.ps1 -OutFile atglance_update.ps1
+     irm https://raw.githubusercontent.com/AtGlance-system/atGlance/main/scripts/atglance_update.ps1 -OutFile atglance_update.ps1
      powershell -ExecutionPolicy Bypass -File .\atglance_update.ps1
      ```
 
@@ -95,18 +54,6 @@ Every AtGlance console image up to and including 2.2.0 ran on the floating `php:
 
    Review the activity log and the security events for unknown sign-ins or changes.
 3. Consoles on Kubernetes or a container service that send traffic straight to container port 8000 should point their load balancer at container port **8080** (Caddy). They should also set a 12 MB request body limit on their ingress or load balancer.
-
-### Add servers from the console (premium)
-
-- **Add server** on Systems Registered installs the atglance CLI on a Linux, Windows or macOS server over SSH or WinRM (HTTPS only) and registers it. Premium feature `remote_deploy`. See [docs/REMOTE_DEPLOY.md](docs/REMOTE_DEPLOY.md).
-- Who: the super admin always. Workspace admins need the new **Add servers from the console** permission, which only the super admin grants on the workspace's Members tab.
-- **Deployment accounts**: a separate kind of service account for Add server, managed by the super admin. Their keys are never shown. Rotating a key updates servers with saved credentials, and the old key works for 24 more hours.
-- The host key (SSH) or certificate (WinRM HTTPS) is shown and confirmed before any password is sent. A changed key is refused until the super admin accepts it.
-- Logins are used once, unless **Save these credentials for later** is ticked. They are encrypted with `APP_KEY`. Saved logins power **Update CLI**, **Redeploy** and key rotation on the system's row.
-- A failed deploy gets one **Retry**. If that fails too, the console undoes its changes on the server. The organization event `deploy.failed` ("Server deploy failed") reports it.
-- A CLI already registered with this console on an older version is not deployed over: update it on the server.
-- Needs CLI 3.0 (`atglance system enroll`, `atglance version --json`), internet access from the console to atglance.live (`ATGLANCE_CLI_RELEASES_URL`) and the queue worker. macOS is offered once a release has a macOS file.
-- If the licence is removed, deployed servers keep syncing, and the Add server actions are locked.
 
 ### Other changes in 2.3.0
 

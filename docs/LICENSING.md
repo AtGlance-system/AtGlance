@@ -125,7 +125,7 @@ Every feature has a tier in the catalog (`contracts/FEATURES.md` in this reposit
 | Tier | Keys today | In the console |
 |---|---|---|
 | free | `systems_configs`, `users_rbac`, `workspaces`, `api_keys`, `service_accounts`, `sso`, `ai_connect`, `mcp_server`, `custom_domain`, `s3_backup`, `backup_restore`, `notifications`, `activity_log` | Always enabled, with or without a licence entry. Never written into a licence |
-| premium | `nfs_storage` (NFS Storage), `azure_storage` (Azure Storage), `remote_tunnel` (Remote Tunnel, console 3.0.0+, docs/REMOTE_TUNNEL.md) | Enabled when the licence grants it: through a bundle, or one by one |
+| premium | `nfs_storage` (NFS Storage), `azure_storage` (Azure Storage) | Enabled when the licence grants it: through a bundle, or one by one |
 
 ### Bundles and individual grants
 
@@ -267,12 +267,7 @@ stored) or uploads a licence file.
 | `E_CLOCK` | This server's clock is more than 24 hours behind the latest time the console recorded | Correct the clock. Activation stays refused until the clock has caught up |
 | `E_RECORD` | `activation.json` was edited, is missing, or does not match `license.atgl` | Upload the licence file again in Admin Settings > Licence |
 | `E_NO_LICENSE` | (API responses) no licence file is installed | Upload one in Admin Settings > Licence |
-| Licence key: "could not resolve atglance.live (DNS error)" | The container cannot resolve the licence server's name | Check the DNS of the Docker host (`/etc/resolv.conf`, Docker's `dns` setting) |
-| Licence key: "connection … was refused or could not be opened" | Firewall, no outgoing internet, or a wrong `ATGLANCE_LICENSE_API_URL` | Allow HTTPS (443) to atglance.live, or use a licence file |
-| Licence key: "did not answer in time" | Slow or filtered network (each attempt waits up to 12 s) | Try again; check the firewall or proxy |
-| Licence key: "TLS/certificate error" | The server's clock is wrong, or an HTTPS-inspecting proxy replaces the certificate | Set the clock (NTP); trust the proxy's CA or bypass it for atglance.live |
-| Licence key: "temporarily unavailable (HTTP 5xx)" / "too many licence checks (HTTP 429)" | atglance.live is briefly down or rate-limits this console (30 checks per minute) | Wait and try again. A key already activated keeps working |
-| Licence key: "Could not reach atglance.live" | Any other network failure (the log names the cURL error) | Run the connection test; use a licence file without internet access |
+| Licence key: "Could not reach atglance.live" | The console has no internet access, or a proxy blocks `ATGLANCE_LICENSE_API_URL` | Use a licence file instead |
 | Licence key: "already in use by another Management Console" | One licence = one console. A licence in use cannot be revoked until it expires | Create a new licence on atglance.live for this console |
 | `NODE_LIMIT_REACHED` | The active nodes reached `max_nodes` | Deregister nodes you no longer use, or upload a licence with a higher node limit |
 | `USER_LIMIT_REACHED` | The users reached `max_users` | Delete users you no longer need, or upload a licence with a higher user limit |
@@ -281,26 +276,6 @@ stored) or uploads a licence file.
 that was already downloaded: it works until its `expires_at`. Revoking a custom license on
 atglance.live only changes the files generated afterwards. Keep `expires_at` short for licences
 you may need to take back.
-
-### Licence key cannot reach atglance.live
-
-The console calls atglance.live from the server (never from the browser), at
-`ATGLANCE_LICENSE_API_URL` (default `https://atglance.live/api/licenses`):
-
-- **Retries:** up to 3 attempts, 0.5 s and 1.5 s apart, on connection errors and temporary answers (429,
-  502, 503, 504). Connect timeout 5 s, request timeout 12 s. A redirect (e.g. an `http://` URL answered with
-  301) stays a POST.
-- **The real cause** is shown in the message (DNS, refused, timeout, TLS, HTTP status) and logged as
-  `licence.api` in the console log, with the action, host, attempt result and cURL error or HTTP status.
-  The licence key is never logged.
-- **Grace period:** a licence key validated online without a file is re-checked daily. Network errors and
-  temporary answers keep it active for 30 days after the last successful check; only a real refusal (wrong,
-  revoked, expired, in use elsewhere) removes it. A licence file is checked offline and never needs
-  atglance.live.
-- **Connection test:** Admin Settings › Licence › Licence key › **Test connection to atglance.live**, or
-  `php artisan license:diagnose`. It shows the licence server URL and any proxy variables, the DNS answer,
-  the TCP connect time and an HTTPS request to the API without a key (HTTP 401 = reachable). Nothing is
-  activated. It works while the console has no licence.
 
 `php artisan license:verify` prints the current state and code. API clients get
 `403 {"code": "E_...", "message": "..."}` for writes while the console is read-only.

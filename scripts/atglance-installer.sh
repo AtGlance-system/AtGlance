@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # AtGlance Community Edition installer.
 #
-#   curl -fsSL https://raw.githubusercontent.com/niketchandra/atGlance-managementGUI/main/scripts/atglance-installer.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/AtGlance-system/atGlance/main/scripts/atglance-installer.sh | sudo bash
 #
 # Prepares the host (root, CPU, memory, Docker, Docker Compose), then runs atglance_update.sh,
 # which deploys the newest release from docker-compose.yml: a new console, or an update of an
@@ -9,7 +9,7 @@
 #
 # Options (pass after "bash -s --", or as environment variables):
 #   --dir DIR          install directory              (ATGLANCE_DIR, default /opt/atglance)
-#   --registry PREFIX  image registry/namespace       (ATGLANCE_REGISTRY, default atglance = Docker Hub)
+#   --registry PREFIX  image registry/namespace       (ATGLANCE_REGISTRY, default ghcr.io/atglance-system/atglance; atglance = Docker Hub)
 #   --port PORT        web console port               (APP_PORT, default 8000)
 #   --keep-clone       keep the git clone this script runs from (ATGLANCE_KEEP_CLONE=1);
 #                      by default a clean clone is removed after a successful run
@@ -27,7 +27,7 @@ ATGLANCE_DIR="${ATGLANCE_DIR:-}"
 ATGLANCE_REGISTRY="${ATGLANCE_REGISTRY:-}"
 ATGLANCE_REF="${ATGLANCE_REF:-main}"
 APP_PORT="${APP_PORT:-}"
-REPO_RAW="https://raw.githubusercontent.com/niketchandra/atGlance-managementGUI/${ATGLANCE_REF}"
+REPO_RAW="https://raw.githubusercontent.com/AtGlance-system/atGlance/${ATGLANCE_REF}"
 # Local compose file instead of downloading one (testing a branch).
 ATGLANCE_COMPOSE_FILE="${ATGLANCE_COMPOSE_FILE:-}"
 

@@ -35,7 +35,7 @@ x-app-env: &app-env
   QUEUE_CONNECTION: redis
 
 x-app: &app
-  image: ${ATGLANCE_REGISTRY:-atglance}/ce-atglance-app:${ATGLANCE_VERSION:-2.3.0}
+  image: ${ATGLANCE_REGISTRY:-ghcr.io/atglance-system/atglance}/ce-atglance-app:${ATGLANCE_VERSION:-latest}
   restart: unless-stopped
   extra_hosts:
     - "host.docker.internal:host-gateway"
@@ -122,7 +122,7 @@ services:
       retries: 10
 
   gateway:
-    image: ${ATGLANCE_REGISTRY:-atglance}/ce-atglance-gateway:${ATGLANCE_VERSION:-2.3.0}
+    image: ${ATGLANCE_REGISTRY:-ghcr.io/atglance-system/atglance}/ce-atglance-gateway:${ATGLANCE_VERSION:-latest}
     container_name: ce-atglance-gateway
     restart: unless-stopped
     ports:
@@ -142,7 +142,7 @@ services:
   # No published port: clients reach it through the gateway at <host>:8002/mcp,
   # each with their own "Authorization: Bearer atgla-..." API key. See docs/mcp.md.
   mcp:
-    image: ${ATGLANCE_REGISTRY:-atglance}/ce-atglance-mcp:${ATGLANCE_VERSION:-2.3.0}
+    image: ${ATGLANCE_REGISTRY:-ghcr.io/atglance-system/atglance}/ce-atglance-mcp:${ATGLANCE_VERSION:-latest}
     container_name: ce-atglance-mcp
     restart: unless-stopped
     labels:

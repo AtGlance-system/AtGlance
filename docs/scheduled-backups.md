@@ -44,7 +44,6 @@ interface; see [STORAGE_TARGETS.md](STORAGE_TARGETS.md).
 | Upload to S3 | Yes / No, and how many copies to keep (1-365). Needs S3 enabled on the S3 tab. |
 | Save to NFS | Yes / No, the export, and how many copies to keep. NFS Storage plugin (premium `nfs_storage`), see [NFS_STORAGE.md](NFS_STORAGE.md). |
 | Upload to Azure | Yes / No, the Azure target, and how many copies to keep. Azure Storage plugin (premium `azure_storage`), see [AZURE_STORAGE.md](AZURE_STORAGE.md). |
-| Upload to Google Drive | Yes / No, and how many copies to keep. Google Drive plugin (free), see [GOOGLE_DRIVE.md](GOOGLE_DRIVE.md). |
 
 At least one destination is required when the schedule is on. The master
 **Enable Backup and Restore** switch turns every backup off; restores still work.
@@ -66,7 +65,6 @@ as before.
 | Local copies | The same path on the local disk: `storage/app/private/backups/...` |
 | NFS | The same path on the chosen export (`/app/nfs/<slot>/backups/...`) |
 | Azure | The same path in the target's container, under its optional path prefix (`<prefix>/backups/...`) |
-| Google Drive | One folder, `My Drive/AtGlance-Backups/<folder>/`, each file under its own name; the same path is kept in the file's `appProperties` |
 | Manifests | Next to every backup: `<backup file>.manifest.json` (see [BACKUP_FORMAT.md](BACKUP_FORMAT.md)) |
 | Encrypted backups | The same names with `.enc` added, e.g. `database-backup-YYYYMMDD-HHMMSS.sql.gz.enc` |
 | Migration backups | `backups/migration/YYYY/MM/migration-backup-YYYYMMDD-HHMMSS.zip.enc` on the target chosen when it was made |

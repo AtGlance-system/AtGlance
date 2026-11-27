@@ -5,7 +5,7 @@
 .DESCRIPTION
     PowerShell port of atglance-installer.sh. Run from an elevated PowerShell:
 
-      irm https://raw.githubusercontent.com/niketchandra/atGlance-managementGUI/main/scripts/atglance-installer.ps1 | iex
+      irm https://raw.githubusercontent.com/AtGlance-system/atGlance/main/scripts/atglance-installer.ps1 | iex
 
     or download it and run:
 
@@ -19,7 +19,7 @@
     Options can also be set as environment variables (used when the script is
     piped to iex, where parameters cannot be passed):
       -Dir DIR          install directory        (ATGLANCE_DIR, default %ProgramData%\AtGlance)
-      -Registry PREFIX  image registry/namespace (ATGLANCE_REGISTRY, default atglance = Docker Hub)
+      -Registry PREFIX  image registry/namespace (ATGLANCE_REGISTRY, default ghcr.io/atglance-system/atglance; atglance = Docker Hub)
       -Port PORT        web console port         (APP_PORT, default 8000)
       -KeepClone        keep the git clone this script runs from (ATGLANCE_KEEP_CLONE=1);
                         by default a clean clone is removed after a successful run
@@ -65,7 +65,7 @@ if ($requestedVersion -ne 'latest') {
 $AtglanceRegistry = Get-Setting $Registry 'ATGLANCE_REGISTRY' ''
 $AtglanceRef      = Get-Setting $null     'ATGLANCE_REF'      'main'
 $AppPort          = Get-Setting $(if ($Port) { "$Port" }) 'APP_PORT' ''
-$RepoRaw          = "https://raw.githubusercontent.com/niketchandra/atGlance-managementGUI/$AtglanceRef"
+$RepoRaw          = "https://raw.githubusercontent.com/AtGlance-system/atGlance/$AtglanceRef"
 
 $MinMemMb  = 1024
 # The controller service uses "configs: content:", added in Docker Compose 2.23.

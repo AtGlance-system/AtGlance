@@ -6,12 +6,12 @@
 .DESCRIPTION
     Download it and run it from an elevated PowerShell (Run as administrator):
 
-      irm https://raw.githubusercontent.com/niketchandra/atGlance-managementGUI/main/scripts/atglance_update.ps1 -OutFile atglance_update.ps1
+      irm https://raw.githubusercontent.com/AtGlance-system/atGlance/main/scripts/atglance_update.ps1 -OutFile atglance_update.ps1
       powershell -ExecutionPolicy Bypass -File .\atglance_update.ps1
 
     or
 
-      irm https://raw.githubusercontent.com/niketchandra/atGlance-managementGUI/main/scripts/atglance_update.ps1 | iex
+      irm https://raw.githubusercontent.com/AtGlance-system/atGlance/main/scripts/atglance_update.ps1 | iex
 
     No .env file is needed, and this script names no service, image or setting of a release:
     everything comes from docker-compose.yml (see "Release contract" in INSTALLATION-UPDATE.md).
@@ -63,7 +63,7 @@ $KeepClone   = $KeepClone -or ([Environment]::GetEnvironmentVariable('ATGLANCE_K
 
 $AtglanceDir = Get-Setting $Dir 'ATGLANCE_DIR' ''
 $AtglanceRef = Get-Setting $null 'ATGLANCE_REF' 'main'
-$RepoRaw     = "https://raw.githubusercontent.com/niketchandra/atGlance-managementGUI/$AtglanceRef"
+$RepoRaw     = "https://raw.githubusercontent.com/AtGlance-system/atGlance/$AtglanceRef"
 # Local compose file instead of downloading one (testing a branch).
 $ComposeFile = Get-Setting $null 'ATGLANCE_COMPOSE_FILE' ''
 $AssumeYes   = $Yes -or ([Environment]::GetEnvironmentVariable('ATGLANCE_YES') -eq '1')
@@ -72,10 +72,7 @@ $MinDiskGb   = 5
 $HealthTimeoutS = 300
 $ScratchDb   = 'atglance_update_verify'
 # Compose files published in the repository: the main file, then the opt-in overlays.
-# PARKED(remote-tunnel-simplify): docker-compose.ipsec.yml and docker-compose.router.yml are no longer
-# fetched or started ($ParkedCompose); an install that used them keeps running without them.
-$ComposeNames = @('docker-compose.yml', 'docker-compose.domain.yml', 'docker-compose.nfs.yml', 'docker-compose.tunnel.yml', 'docker-compose.tunnel-connectors.yml', 'docker-compose.agents.yml')
-$ParkedCompose = @('docker-compose.ipsec.yml', 'docker-compose.router.yml')
+$ComposeNames = @('docker-compose.yml', 'docker-compose.domain.yml', 'docker-compose.nfs.yml')
 # Image tag variable of the AtGlance images (rollback re-tags them).
 $VersionVar  = 'ATGLANCE_VERSION'
 $SecretRe    = '(PASSWORD|SECRET|TOKEN|_KEY)$'
@@ -298,7 +295,7 @@ function Remove-Clone {
     $top = & $git rev-parse --show-toplevel
     if ($LASTEXITCODE -ne 0 -or -not $top) { return }
     $top = [IO.Path]::GetFullPath("$top".Trim()).TrimEnd('\', '/')
-    if ((& $git remote get-url origin) -notmatch 'niketchandra/atGlance-managementGUI') { return }
+    if ((& $git remote get-url origin) -notmatch 'AtGlance-system/atGlance|niketchandra/atGlance-managementGUI') { return }
     if (-not (Test-Path -LiteralPath $AtglanceDir)) { return }
     $install = [IO.Path]::GetFullPath($AtglanceDir).TrimEnd('\', '/')
     # Never a drive root or a profile folder.
@@ -395,16 +392,8 @@ if ($any) {
         if (-not $p) { continue }
         $b = Split-Path -Leaf $p
         if ($b -eq 'docker-compose.yml' -or $Files -contains $b) { continue }
-        if ($ParkedCompose -contains $b) {
-            Warn "Compose file ${b}: parked (IPsec, Point-to-Site, subnet router). Not started any more; its container is removed. Use Direct with your organization's network, or a bastion/connector (docs/PARKED_FEATURES.md)."
-            continue
-        }
         if (-not (Test-Path (Join-Path $NewDir $b))) { if (Test-Path $b) { Copy-Item -Force $b (Join-Path $NewDir $b) } else { continue } }
         $Files += $b; Ok "Compose file $b in use: kept"
-        # The tunnel overlay used to publish the connector port: keep it published for this install.
-        if ($b -eq 'docker-compose.tunnel.yml' -and (Test-Path (Join-Path $NewDir 'docker-compose.tunnel-connectors.yml')) -and $used -notmatch 'docker-compose\.tunnel-connectors\.yml') {
-            $Files += 'docker-compose.tunnel-connectors.yml'; Ok 'Compose file docker-compose.tunnel-connectors.yml added (keeps the connector port published)'
-        }
     }
 }
 $NewArgs = @('--project-directory', $AtglanceDir); $script:DirArgs = @()

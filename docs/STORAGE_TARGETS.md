@@ -26,10 +26,6 @@ Providers today:
 | `Support\Storage\CoreTargets` | S3, local disk | `s3_backup`, `backup_restore` (free) | `s3`, `local` |
 | `Plugins\NfsStorage\Services\NfsTargets` | one per mounted export slot | `nfs_storage` (premium) | `nfs-1` ... `nfs-4` |
 | `Plugins\AzureStorage\Services\AzureTargets` | one per Azure target | `azure_storage` (premium) | `azure-<id>` |
-| `Plugins\GoogleDrive\Services\DriveTargets` | the connected Google Drive (organization backups only, never the configuration files) | `backup_restore` (free) | `gdrive` |
-
-Google Drive is not a Flysystem disk: `DriveTarget` implements `StorageTarget` directly on the Drive
-REST API and keeps each file's backup path in its `appProperties`. See [GOOGLE_DRIVE.md](GOOGLE_DRIVE.md).
 
 ## What every target gets for free
 
@@ -139,7 +135,7 @@ disappears silently:
 1. Add the feature to `contracts/fixtures/features.json` (tier, minimum console version) and copy
    it to the console and site catalogs (`contracts/FEATURES.md`).
 2. Create the plugin in `composer/app/Plugins/<Name>/` with a `plugin.php` (see
-   PLUGINS.md): its settings model and migration, a Site Settings tab, routes.
+   `PLUGINS.md` in the console source): its settings model and migration, a Site Settings tab, routes.
 3. Give it a Flysystem adapter (or reuse one) and a disk name per target, e.g. `sftp-<id>`.
    `put()` must be atomic: write under a temporary name and rename, or use an upload that only
    becomes visible when committed.

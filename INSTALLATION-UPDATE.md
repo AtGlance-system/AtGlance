@@ -15,23 +15,20 @@ Choose one of two ways to deploy:
 - **[Part A: on a VM](#part-a-deploy-on-a-vm)**: a Linux server (EC2, Azure VM, a VPS, bare metal). One command installs everything, including MySQL and Redis. Use this for most installs.
 - **[Part B: on a container service](#part-b-deploy-on-a-container-service)**: AWS ECS (Fargate or EC2), Kubernetes, Azure Container Apps and similar platforms. You use managed MySQL and Redis and run the AtGlance images as services.
 
-Both ways use the same images from Docker Hub. After either part, finish with [After the install](#after-the-install).
+Both ways use the same images, from the GitHub Container Registry (`ghcr.io/atglance-system/atglance/*`; the same images are on Docker Hub as `atglance/*`). After either part, finish with [After the install](#after-the-install).
 
 ## What you deploy
 
 | Component | Image | Runs | Notes |
 |---|---|---|---|
-| App (web console + API) | `atglance/ce-atglance-app` | default command | Health check `GET /up`. On a VM, host port 8000 is the built-in Caddy proxy (container port 8080), which refuses request bodies over 12 MB; the PHP server (container port 8000) is not published and is reached only by the gateway. |
-| Worker | `atglance/ce-atglance-app` | `php artisan queue:work redis --tries=5 --backoff=30,60,120,300,600 --timeout=60 --sleep=3 --max-jobs=1000` | No port |
-| Scheduler | `atglance/ce-atglance-app` | `php artisan schedule:work` | No port. Run exactly one. |
+| App (web console + API) | `ghcr.io/atglance-system/atglance/ce-atglance-app` | default command | Health check `GET /up`. On a VM, host port 8000 is the built-in Caddy proxy (container port 8080), which refuses request bodies over 12 MB; the PHP server (container port 8000) is not published and is reached only by the gateway. |
+| Worker | `ghcr.io/atglance-system/atglance/ce-atglance-app` | `php artisan queue:work redis --tries=5 --backoff=30,60,120,300,600 --timeout=60 --sleep=3 --max-jobs=1000` | No port |
+| Scheduler | `ghcr.io/atglance-system/atglance/ce-atglance-app` | `php artisan schedule:work` | No port. Run exactly one. |
 | Database | `mysql:8.0` | | Or a managed MySQL 8.0 |
 | Cache and queue | `redis:7-alpine` | | Or a managed Redis 7 |
-| API gateway | `atglance/ce-atglance-gateway` | default command | Kong, port 8002. Forwards to `http://app:8000`. The `atglance` CLI talks to it. |
-| MCP server | `atglance/ce-atglance-mcp` | default command | No published port; reached at `<host>:8002/mcp` through the gateway. Off by default (Site Setting > Plugins > MCP Server). |
-| Controller | `atglance/ce-atglance-app` (same image) | `composer/bin/controller.php` | Container `ce-atglance-controller`. Holds the Docker socket; answers only fixed calls: start/stop/status of `ce-atglance-mcp` and, with `docker-compose.nfs.yml`, mounting the NFS exports in use (docs/NFS_STORAGE.md). No published port. |
-| Agent Monitoring (optional) | `atglance/ce-atglance-app` (same image), `atglance/ce-atglance-agent-gateway`, `timescale/timescaledb` | role `agent-monitoring`; `php artisan agents:consume` | Only with `docker-compose.agents.yml` and a licence with Agent Monitoring. `ce-atglance-agent-monitoring` serves the Servers pages and the agents API (health check `GET /up`, no published port). `ce-atglance-agent-gateway` takes the agents' WebSocket connections at `/agent/v1/connect`. `ce-atglance-agent-worker` stores what they send, and `ce-atglance-tsdb` holds the time series. If the monitoring service is down, the Servers pages say so and the rest of the console works. See docs/AGENT_MONITORING.md. |
-| Tunnel service (optional) | `atglance/ce-atglance-tunnel` | default command | Only with `docker-compose.tunnel.yml` and a licence with Remote Tunnel. Container `ce-atglance-tunnel`; Direct and bastion/proxy sessions run here without any published port. Agent Tunnel connectors dial `TUNNEL_PORT` (default 8443, mutual TLS), published only with `docker-compose.tunnel-connectors.yml`. Needs `ATGLANCE_TUNNEL_SECRET` (32+ characters, same value for app, worker, scheduler and tunnel). Read-only, no capabilities. See docs/AGENT_TUNNEL.md. |
-| IPsec gateway (PARKED) | `atglance/ce-atglance-ipsec` | — | Not deployed. Site-to-Site IPsec and Point-to-Site are parked: AtGlance uses your organization's own VPN/MPLS/peering. The updaters no longer start `docker-compose.ipsec.yml` or `docker-compose.router.yml`. See docs/PARKED_FEATURES.md. |
+| API gateway | `ghcr.io/atglance-system/atglance/ce-atglance-gateway` | default command | Kong, port 8002. Forwards to `http://app:8000`. The `atglance` CLI talks to it. |
+| MCP server | `ghcr.io/atglance-system/atglance/ce-atglance-mcp` | default command | No published port; reached at `<host>:8002/mcp` through the gateway. Off by default (Site Setting > Plugins > MCP Server). |
+| Controller | `ghcr.io/atglance-system/atglance/ce-atglance-app` (same image) | `composer/bin/controller.php` | Container `ce-atglance-controller`. Holds the Docker socket; answers only fixed calls: start/stop/status of `ce-atglance-mcp` and, with `docker-compose.nfs.yml`, mounting the NFS exports in use (docs/NFS_STORAGE.md). No published port. |
 
 Images are published for `linux/amd64` only. The installers always deploy the `latest` tag; release tags such as `2.1.2` also exist for manual deployments. Without the installers, `docker-compose.yml` deploys the release it was published with (`ATGLANCE_VERSION`, for example `2.3.0`).
 
@@ -61,7 +58,7 @@ Linux server: follow Steps 1 to 3 below. Windows machine: jump to [Deploy on Win
 | CPU | 2 vCPU, amd64 (arm64 images are not published yet) |
 | Memory | 2 GB (1 GB works for small installs) |
 | Disk | 5 GB free, more for stored configuration files |
-| Access | root or sudo, outbound internet to Docker Hub and GitHub |
+| Access | root or sudo, outbound internet to ghcr.io and GitHub |
 | Ports | 8000 (web console) open to users and servers; 8002 (gateway: atglance CLI and the `/mcp` MCP server) open to servers and AI clients |
 
 You do not need Docker installed. The installer installs it.
@@ -84,8 +81,8 @@ sudo bash atglance-installer.sh
 Or run it from a clone of this repository. The scripts are in the `scripts/` folder. The clone is removed after a successful install (see step 6 below):
 
 ```bash
-git clone https://github.com/niketchandra/atGlance-managementGUI.git
-sudo bash atGlance-managementGUI/scripts/atglance-installer.sh
+git clone https://github.com/AtGlance-system/atGlance.git
+sudo bash atGlance/scripts/atglance-installer.sh
 ```
 
 The installer:
@@ -107,7 +104,7 @@ curl -fsSL https://app.atglance.live/console/atglance-installer.sh \
 |---|---|---|
 | `--port` | `8000` | Port for the web console. Keep 8000: the CLI expects it. |
 | `--dir` | `/opt/atglance` | Install directory |
-| `--registry` | `atglance` | Image registry or namespace (Docker Hub by default) |
+| `--registry` | `ghcr.io/atglance-system/atglance` | Image registry or namespace (`atglance` = Docker Hub) |
 | `--keep-clone` | off | Keep the git clone the installer ran from |
 
 The installer always deploys the newest release (`latest` images). It needs Docker Compose 2.23 or newer and upgrades an older Compose plugin itself.
@@ -141,7 +138,7 @@ Use this when you cannot run the installer. You need Docker Engine with the Comp
 
 ```bash
 # 1. Clone the repository
-sudo git clone https://github.com/niketchandra/atGlance-managementGUI.git /opt/atglance
+sudo git clone https://github.com/AtGlance-system/atGlance.git /opt/atglance
 cd /opt/atglance
 
 # 2. Create the settings file and set three long random passwords
@@ -177,15 +174,15 @@ The updater does not need a `.env` file. It reads each compose variable from, in
 
    ```bash
    # One command, no questions
-   curl -fsSL https://raw.githubusercontent.com/niketchandra/atGlance-managementGUI/main/scripts/atglance_update.sh | sudo bash -s -- --yes
+   curl -fsSL https://raw.githubusercontent.com/AtGlance-system/atGlance/main/scripts/atglance_update.sh | sudo bash -s -- --yes
 
    # Or download, read, then run (asks for confirmation)
-   curl -fsSL https://raw.githubusercontent.com/niketchandra/atGlance-managementGUI/main/scripts/atglance_update.sh -o atglance_update.sh
+   curl -fsSL https://raw.githubusercontent.com/AtGlance-system/atGlance/main/scripts/atglance_update.sh -o atglance_update.sh
    sudo bash atglance_update.sh
 
    # Or from a clone of this repository (the clone is removed after a successful update)
-   git clone https://github.com/niketchandra/atGlance-managementGUI.git
-   sudo bash atGlance-managementGUI/scripts/atglance_update.sh
+   git clone https://github.com/AtGlance-system/atGlance.git
+   sudo bash atGlance/scripts/atglance_update.sh
    ```
 
    Add `--dir DIR` if AtGlance is not in `/opt/atglance`.
@@ -199,7 +196,7 @@ What the updater does:
 | 1. Database backup | `mysqldump` (consistent, no lock) to `<dir>/backups/update-<time>/atglance.sql.gz`, checked for corruption and completeness, plus exact row counts of every table, the app's `.env` (APP_KEY) and the compose files. The last 5 backups are kept (`--keep N`). |
 | 2. Current checksums | Image ID and registry digest of every running container. The AtGlance images (those tagged with `ATGLANCE_VERSION`) are tagged `:rollback-<time>`. |
 | 3. New checksums | Pulls every image of the newest `docker-compose.yml` and compares, and compares each container's compose settings (`docker compose config --hash`). If nothing changed and every container runs: "already up to date" and exit (redeploy anyway with `--force`). |
-| 4. Update | Refreshes `docker-compose.yml`, keeps the compose overlays the install was deployed with (custom domain / HTTPS proxy, NFS, Remote Tunnel), recreates all containers. The parked IPsec and router overlays are dropped with a warning (their containers are removed; their data stays); an install that used the tunnel overlay also gets `docker-compose.tunnel-connectors.yml`, so its connector port stays published. Migrations run when the app starts. |
+| 4. Update | Refreshes `docker-compose.yml`, keeps the compose overlays the install was deployed with (custom domain / HTTPS proxy), recreates all containers. Migrations run when the app starts. |
 | Default passwords | A secret that still holds the default of the old `docker-compose.yml` (an install started without `.env`) is replaced after the health checks: database accounts with `ALTER USER`, then `.env` and the containers. |
 | 5. Health checks | Every service of `docker-compose.yml`: healthy (when it has a health check) or running, and on the new image; every published port answering; no pending migrations; no restart loop; new errors in the app log; disk space. Services labelled optional (MCP) may be stopped. |
 | 6. Database check | Live database against the backup: no rows lost (cache, queue, session and log tables may change on their own; a table dropped by a migration is a warning). The backup is restored into a scratch database (`atglance_update_verify`, dropped afterwards) to prove it is complete (`--skip-db-verify` skips this). |
@@ -219,7 +216,7 @@ The install and update scripts (`atglance-installer.sh`, `atglance-installer.ps1
 | Rule | Why |
 |---|---|
 | Write a setting as `${NAME:-default}`. Write a secret as `${NAME}` (no default), or give it a name ending in `PASSWORD`, `SECRET`, `TOKEN` or `_KEY`. | A secret gets a random value on a new install, and when a release adds it. Every other setting falls back to its default. |
-| Tag the AtGlance images with `${ATGLANCE_VERSION:-<release>}` (for example `${ATGLANCE_VERSION:-2.3.0}`). | The updater sets `ATGLANCE_VERSION=latest` and re-tags exactly these images for rollback. The default pins plain `docker compose up` to the release. |
+| Tag the AtGlance images with `${ATGLANCE_VERSION:-<release>}` (for example `${ATGLANCE_VERSION:-latest}`). | The updater sets `ATGLANCE_VERSION=latest` and re-tags exactly these images for rollback. The default pins plain `docker compose up` to the release. |
 | Give each long-running service a health check (in the image or in the compose file). | The updater waits until the service is healthy; without one it only checks the service is running. |
 | Label a service the console starts and stops with `com.atglance.optional: "true"`. | It may be stopped after an update (the MCP server). |
 | Keep the database on a `mysql` or `mariadb` image with `MYSQL_DATABASE` and `MYSQL_ROOT_PASSWORD`. | The backup, the restore check and the rollback use them. |
@@ -232,7 +229,7 @@ A new service, a new setting or a new secret in `docker-compose.yml` is deployed
 
 | Task | Command |
 |---|---|
-| Upgrade (recommended) | `curl -fsSL https://raw.githubusercontent.com/niketchandra/atGlance-managementGUI/main/scripts/atglance_update.sh \| sudo bash -s -- --yes` (see [Updating](#updating)) |
+| Upgrade (recommended) | `curl -fsSL https://raw.githubusercontent.com/AtGlance-system/atGlance/main/scripts/atglance_update.sh \| sudo bash -s -- --yes` (see [Updating](#updating)) |
 | Upgrade (quick) | Run the installer again. It keeps `.env`, passwords and data. Database migrations run when the app starts. It takes no backup and runs no checks. |
 | Upgrade a manual (clone) install | `cd /opt/atglance && sudo git pull && sudo docker compose pull && sudo docker compose up -d --remove-orphans` |
 | Status | `cd /opt/atglance && docker compose ps` |
@@ -256,7 +253,7 @@ Use `atglance-installer.ps1` on Windows 10/11 or Windows Server. It does the sam
 | Memory | 2 GB free for Docker (1 GB works for small installs) |
 | Disk | 5 GB free, more for stored configuration files |
 | Software | [Docker Desktop](https://www.docker.com/products/docker-desktop/) running in **Linux containers** mode (the default) |
-| Access | An elevated PowerShell (Run as administrator), outbound internet to Docker Hub and GitHub |
+| Access | An elevated PowerShell (Run as administrator), outbound internet to ghcr.io and GitHub |
 | Ports | 8000 (web console) open to users and servers; 8002 (gateway: atglance CLI and the `/mcp` MCP server) open to servers and AI clients |
 
 If Docker is missing, the script tries `winget install Docker.DockerDesktop`, then asks you to start Docker Desktop and run it again.
@@ -279,8 +276,8 @@ powershell -ExecutionPolicy Bypass -File .\atglance-installer.ps1
 Or run it from a clone of this repository (needs Git for Windows). The clone is removed after a successful install (see step 6 below):
 
 ```powershell
-git clone https://github.com/niketchandra/atGlance-managementGUI.git
-powershell -ExecutionPolicy Bypass -File .\atGlance-managementGUI\scripts\atglance-installer.ps1
+git clone https://github.com/AtGlance-system/atGlance.git
+powershell -ExecutionPolicy Bypass -File .\atGlance\scripts\atglance-installer.ps1
 ```
 
 The installer:
@@ -321,7 +318,7 @@ irm https://app.atglance.live/console/atglance-installer.ps1 | iex
 |---|---|---|---|
 | `-Port` | `APP_PORT` | `8000` | Port for the web console. Keep 8000: the CLI expects it. |
 | `-Dir` | `ATGLANCE_DIR` | `C:\ProgramData\AtGlance` | Install directory |
-| `-Registry` | `ATGLANCE_REGISTRY` | `atglance` | Image registry or namespace |
+| `-Registry` | `ATGLANCE_REGISTRY` | `ghcr.io/atglance-system/atglance` | Image registry or namespace (`atglance` = Docker Hub) |
 | `-KeepClone` | `ATGLANCE_KEEP_CLONE=1` | off | Keep the git clone the installer ran from |
 
 #### Manual install on Windows: clone the repository and run Docker Compose
@@ -330,7 +327,7 @@ Use this when you cannot run the installer. Needs Docker Desktop (Linux containe
 
 ```powershell
 # 1. Clone the repository
-git clone https://github.com/niketchandra/atGlance-managementGUI.git C:\ProgramData\AtGlance
+git clone https://github.com/AtGlance-system/atGlance.git C:\ProgramData\AtGlance
 cd C:\ProgramData\AtGlance
 
 # 2. Create the settings file and set DB_PASSWORD, DB_ROOT_PASSWORD and REDIS_PASSWORD
@@ -367,12 +364,12 @@ Like the Linux updater, it does not need a `.env` file (it reads the settings fr
 
    ```powershell
    # Download, then run (asks for confirmation; add -Yes to skip it)
-   irm https://raw.githubusercontent.com/niketchandra/atGlance-managementGUI/main/scripts/atglance_update.ps1 -OutFile atglance_update.ps1
+   irm https://raw.githubusercontent.com/AtGlance-system/atGlance/main/scripts/atglance_update.ps1 -OutFile atglance_update.ps1
    powershell -ExecutionPolicy Bypass -File .\atglance_update.ps1
 
    # Or from a clone of this repository (the clone is removed after a successful update)
-   git clone https://github.com/niketchandra/atGlance-managementGUI.git
-   powershell -ExecutionPolicy Bypass -File .\atGlance-managementGUI\scripts\atglance_update.ps1
+   git clone https://github.com/AtGlance-system/atGlance.git
+   powershell -ExecutionPolicy Bypass -File .\atGlance\scripts\atglance_update.ps1
    ```
 
    Without `-Dir`, the updater uses the folder the running containers were deployed from, else `C:\ProgramData\AtGlance`. Add `-Dir DIR` (or `$env:ATGLANCE_DIR`) to choose another folder.
@@ -494,7 +491,7 @@ Replace the values in `<...>`.
   "containerDefinitions": [
     {
       "name": "app",
-      "image": "atglance/ce-atglance-app:2.1.2",
+      "image": "ghcr.io/atglance-system/atglance/ce-atglance-app:latest",
       "essential": true,
       "portMappings": [{ "name": "app", "containerPort": 8000, "protocol": "tcp" }],
       "mountPoints": [{ "sourceVolume": "app-storage", "containerPath": "/app/storage" }],
@@ -578,7 +575,7 @@ Keep the same EFS volume and mount point. All three must share `/app/storage`.
 
 #### Step 7: API gateway
 
-1. Create a task definition `ce-atglance-gateway` with image `atglance/ce-atglance-gateway:2.1.2`, port 8002, 256 CPU / 512 MB. It needs no volume and no environment variables. Health check: `["CMD", "kong", "health"]`.
+1. Create a task definition `ce-atglance-gateway` with image `ghcr.io/atglance-system/atglance/ce-atglance-gateway:latest`, port 8002, 256 CPU / 512 MB. It needs no volume and no environment variables. Health check: `["CMD", "kong", "health"]`.
 2. Create a service, desired count 1 or more, with Service Connect as a client, so `app` resolves to the app service. Attach it to the `atglance-gateway` target group on container port 8002.
 
 Your servers set the CLI management URL to `https://<your-domain>:8002`.
@@ -632,7 +629,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: atglance/ce-atglance-app:2.1.2
+          image: ghcr.io/atglance-system/atglance/ce-atglance-app:latest
           ports: [{ containerPort: 8000 }]
           env:
             - { name: ATGLANCE_ROLE, value: app }
@@ -664,7 +661,7 @@ spec:
   ports: [{ port: 8000, targetPort: 8000 }]
 ```
 
-For the worker and scheduler, copy the Deployment, set `ATGLANCE_ROLE`, add the `command`, remove the ports and probe, and use `strategy: { type: Recreate }` for the scheduler. For the gateway, run `atglance/ce-atglance-gateway` with port 8002 and no volume, and expose it with a LoadBalancer Service or Ingress so `<host>:8000` reaches the app and `<host>:8002` reaches the gateway.
+For the worker and scheduler, copy the Deployment, set `ATGLANCE_ROLE`, add the `command`, remove the ports and probe, and use `strategy: { type: Recreate }` for the scheduler. For the gateway, run `ghcr.io/atglance-system/atglance/ce-atglance-gateway` with port 8002 and no volume, and expose it with a LoadBalancer Service or Ingress so `<host>:8000` reaches the app and `<host>:8002` reaches the gateway.
 
 ---
 
