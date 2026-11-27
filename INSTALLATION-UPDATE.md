@@ -68,13 +68,13 @@ You do not need Docker installed. The installer installs it.
 One command downloads the installer and deploys everything:
 
 ```bash
-curl -fsSL https://app.atglance.live/console/atglance-installer.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/AtGlance-system/atGlance/main/scripts/atglance-installer.sh | sudo bash
 ```
 
 Or download the file first, read it, then run it:
 
 ```bash
-curl -fsSL https://app.atglance.live/console/atglance-installer.sh -o atglance-installer.sh
+curl -fsSL https://raw.githubusercontent.com/AtGlance-system/atGlance/main/scripts/atglance-installer.sh -o atglance-installer.sh
 sudo bash atglance-installer.sh
 ```
 
@@ -96,7 +96,7 @@ The installer:
 To change the defaults, pass options after `bash -s --`:
 
 ```bash
-curl -fsSL https://app.atglance.live/console/atglance-installer.sh \
+curl -fsSL https://raw.githubusercontent.com/AtGlance-system/atGlance/main/scripts/atglance-installer.sh \
   | sudo bash -s -- --dir /opt/atglance
 ```
 
@@ -263,13 +263,13 @@ If Docker is missing, the script tries `winget install Docker.DockerDesktop`, th
 Open PowerShell as administrator (Start menu, search PowerShell, right-click, **Run as administrator**). One command downloads the installer and deploys everything:
 
 ```powershell
-irm https://app.atglance.live/console/atglance-installer.ps1 | iex
+irm https://raw.githubusercontent.com/AtGlance-system/atGlance/main/scripts/atglance-installer.ps1 | iex
 ```
 
 Or download the file first, then run it:
 
 ```powershell
-irm https://app.atglance.live/console/atglance-installer.ps1 -OutFile atglance-installer.ps1
+irm https://raw.githubusercontent.com/AtGlance-system/atGlance/main/scripts/atglance-installer.ps1 -OutFile atglance-installer.ps1
 powershell -ExecutionPolicy Bypass -File .\atglance-installer.ps1
 ```
 
@@ -311,7 +311,7 @@ Pass options to the script, or set the environment variable when you pipe it to 
 
 ```powershell
 $env:ATGLANCE_DIR = "D:\atglance"
-irm https://app.atglance.live/console/atglance-installer.ps1 | iex
+irm https://raw.githubusercontent.com/AtGlance-system/atGlance/main/scripts/atglance-installer.ps1 | iex
 ```
 
 | Option | Environment variable | Default | What it does |
@@ -693,9 +693,19 @@ On a container service, read it from the shared file system or with `aws ecs exe
 ### Connect a server
 
 1. In the console, open **Settings** and create an API key. It starts with `atgla-`.
-2. On the Linux server, install the `atglance` CLI.
-3. Run `sudo atglance --configure`. Enter the gateway address as the management URL, `http://<server-ip>:8002` on a VM or `https://<your-domain>:8002` behind a load balancer, and paste the key.
-4. Run `atglance --validate`, then `sudo atglance --system-register`.
+2. On the Linux server, install the `atglance` CLI (packages on the AtGlance downloads page).
+3. Log in with the gateway address, `http://<server-ip>:8002` on a VM or `https://<your-domain>:8002` behind a load balancer, and paste the key when asked:
+
+   ```bash
+   sudo atglance login --server http://<server-ip>:8002
+   ```
+
+4. Register the server, back up its services and check the connection:
+
+   ```bash
+   sudo atglance system register
+   sudo atglance config backup --all && sudo atglance check
+   ```
 
 The gateway forwards `/<path>` to the app's `/api/<path>`, see [api-gateway.md](docs/api-gateway.md).
 
