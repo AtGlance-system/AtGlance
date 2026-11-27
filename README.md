@@ -11,6 +11,19 @@ on Docker Hub as `atglance/ce-atglance-*`.
 Every free feature is included. The premium features of this release, **NFS Storage** and **Azure
 Storage**, use the same images and switch on with a licence that includes them.
 
+## Documentation (wiki)
+
+Step-by-step guides are in the **[wiki](https://github.com/AtGlance-system/atGlance/wiki)**:
+
+| Get started | Run and maintain | Help |
+|---|---|---|
+| [Requirements](https://github.com/AtGlance-system/atGlance/wiki/Requirements) | [Upgrade](https://github.com/AtGlance-system/atGlance/wiki/Upgrade) | [Troubleshooting](https://github.com/AtGlance-system/atGlance/wiki/Troubleshooting) |
+| [Install on Linux](https://github.com/AtGlance-system/atGlance/wiki/Install-on-Linux) | [Rollback](https://github.com/AtGlance-system/atGlance/wiki/Rollback) | [FAQ](https://github.com/AtGlance-system/atGlance/wiki/FAQ) |
+| [Install on Windows](https://github.com/AtGlance-system/atGlance/wiki/Install-on-Windows) | [Backup and Restore](https://github.com/AtGlance-system/atGlance/wiki/Backup-and-Restore) | [Images and Registries](https://github.com/AtGlance-system/atGlance/wiki/Images-and-Registries) |
+| [Manual Install](https://github.com/AtGlance-system/atGlance/wiki/Manual-Install) | [Configuration](https://github.com/AtGlance-system/atGlance/wiki/Configuration) | [Optional Features](https://github.com/AtGlance-system/atGlance/wiki/Optional-Features) |
+| [After the Install](https://github.com/AtGlance-system/atGlance/wiki/After-the-Install) | [Manage and Uninstall](https://github.com/AtGlance-system/atGlance/wiki/Manage-and-Uninstall) | |
+| [Connect Servers](https://github.com/AtGlance-system/atGlance/wiki/Connect-Servers) | | |
+
 ## Install
 
 **Linux** (Docker host; the installer installs Docker if it is missing), as root:
@@ -32,6 +45,7 @@ The installer checks the host (CPU, memory, Docker, Docker Compose), then runs t
 
 Then open `http://<server>:8000`, run the setup wizard (first administrator and organization) and add your
 licence under **Settings › Licence**. Get a licence key from your AtGlance dashboard.
+Next steps: [After the Install](https://github.com/AtGlance-system/atGlance/wiki/After-the-Install) and [Connect Servers](https://github.com/AtGlance-system/atGlance/wiki/Connect-Servers).
 
 ## Upgrade
 
@@ -49,7 +63,7 @@ powershell -ExecutionPolicy Bypass -File .\atglance_update.ps1
 The updater backs up the database, refreshes the compose files (keeping the overlays the console was
 started with), pulls the newest images, recreates the containers and checks the database and their health.
 Data, passwords and settings are kept. If a check fails it exits with code 2; the backup folder has a
-`ROLLBACK.txt` with the exact commands to go back.
+`ROLLBACK.txt` with the exact commands to go back. Details: [Upgrade](https://github.com/AtGlance-system/atGlance/wiki/Upgrade) and [Rollback](https://github.com/AtGlance-system/atGlance/wiki/Rollback).
 
 **Consoles installed from Docker Hub** keep using Docker Hub (the updater reads the registry of the running
 containers). To move one to the GitHub Container Registry (same images), set this in its `.env`
@@ -58,6 +72,8 @@ containers). To move one to the GitHub Container Registry (same images), set thi
 ```bash
 ATGLANCE_REGISTRY=ghcr.io/atglance-system/atglance
 ```
+
+More in [Images and Registries](https://github.com/AtGlance-system/atGlance/wiki/Images-and-Registries).
 
 ## Manual install with Docker Compose
 
@@ -77,7 +93,8 @@ sudo docker compose -f docker-compose.yml -f docker-compose.domain.yml -f docker
 ```
 
 To upgrade a manual install later, run the updater above with `--dir /opt/atglance`, or
-`git pull && sudo docker compose pull && sudo docker compose up -d`.
+`git pull && sudo docker compose pull && sudo docker compose up -d`. Step by step: [Manual Install](https://github.com/AtGlance-system/atGlance/wiki/Manual-Install);
+overlays: [Optional Features](https://github.com/AtGlance-system/atGlance/wiki/Optional-Features).
 
 ## Files
 
@@ -105,5 +122,7 @@ To upgrade a manual install later, run the updater above with `--dir /opt/atglan
 - **`APP_KEY`** in `storage/.env` inside the `app-storage` volume: it encrypts stored secrets. Keep a copy.
 - **The database:** the updater makes one before each update.
 
+Scheduled backups and restore: [Backup and Restore](https://github.com/AtGlance-system/atGlance/wiki/Backup-and-Restore). Problems: [Troubleshooting](https://github.com/AtGlance-system/atGlance/wiki/Troubleshooting).
+
 Full guide, including Windows, container services (ECS, Kubernetes) and rollback:
-**[INSTALLATION-UPDATE.md](INSTALLATION-UPDATE.md)**. What changed in each release: [CHANGELOG.md](CHANGELOG.md).
+**[INSTALLATION-UPDATE.md](INSTALLATION-UPDATE.md)** and the **[wiki](https://github.com/AtGlance-system/atGlance/wiki)**. What changed in each release: [CHANGELOG.md](CHANGELOG.md).
