@@ -24,6 +24,14 @@ Step-by-step guides are in the **[wiki](https://github.com/AtGlance-system/atGla
 | [After the Install](https://github.com/AtGlance-system/atGlance/wiki/After-the-Install) | [Manage and Uninstall](https://github.com/AtGlance-system/atGlance/wiki/Manage-and-Uninstall) | |
 | [Connect Servers](https://github.com/AtGlance-system/atGlance/wiki/Connect-Servers) | | |
 
+The `atglance` CLI on your servers:
+
+| Learn | Use | Help |
+|---|---|---|
+| [CLI Overview and features](https://github.com/AtGlance-system/atGlance/wiki/CLI-Overview) | [CLI Workflows](https://github.com/AtGlance-system/atGlance/wiki/CLI-Workflows) | [CLI Troubleshooting](https://github.com/AtGlance-system/atGlance/wiki/CLI-Troubleshooting) |
+| [Install the CLI](https://github.com/AtGlance-system/atGlance/wiki/CLI-Install) | [CLI Commands](https://github.com/AtGlance-system/atGlance/wiki/CLI-Commands) | |
+| [CLI Agent and Agent Monitoring](https://github.com/AtGlance-system/atGlance/wiki/CLI-Agent) | | |
+
 ## Install
 
 **Linux** (Docker host; the installer installs Docker if it is missing), as root:
